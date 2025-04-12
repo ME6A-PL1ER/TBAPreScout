@@ -66,6 +66,11 @@ def main():
     summary_frame = ttk.LabelFrame(main_frame, text="Team Summary", padding="10")
     summary_frame.pack(fill=tk.X, pady=10)
     
+    def copy_to_clipboard(entry_widget):
+        root.clipboard_clear()
+        root.clipboard_append(entry_widget.get())
+        root.update()
+    
     rank_alliance_summary_label = ttk.Label(summary_frame, text="Rank & Alliance Summary: ")
     rank_alliance_summary_label.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
     
@@ -73,12 +78,18 @@ def main():
     rank_alliance_summary_value.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
     rank_alliance_summary_value.insert(0, "No data")
     
+    rank_alliance_copy_button = ttk.Button(summary_frame, text="Copy", command=lambda: copy_to_clipboard(rank_alliance_summary_value))
+    rank_alliance_copy_button.grid(row=0, column=2, padx=5, pady=5)
+    
     awards_summary_label = ttk.Label(summary_frame, text="Awards Summary: ")
     awards_summary_label.grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
     
     awards_summary_value = ttk.Entry(summary_frame, font=("Arial", 10, "bold"), state="readonly", width=70)
     awards_summary_value.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
     awards_summary_value.insert(0, "No data")
+    
+    awards_copy_button = ttk.Button(summary_frame, text="Copy", command=lambda: copy_to_clipboard(awards_summary_value))
+    awards_copy_button.grid(row=1, column=2, padx=5, pady=5)
     
     buttons_frame = ttk.Frame(main_frame)
     buttons_frame.pack(fill=tk.X, pady=10)
