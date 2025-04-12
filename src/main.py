@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import sys
 import os
+import re
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from api.frc_api import FRCAPI
@@ -62,8 +63,136 @@ def main():
     tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
     
+    summary_frame = ttk.LabelFrame(main_frame, text="Team Summary", padding="10")
+    summary_frame.pack(fill=tk.X, pady=10)
+    
+    rank_alliance_summary_label = ttk.Label(summary_frame, text="Rank & Alliance Summary: ")
+    rank_alliance_summary_label.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
+    
+    rank_alliance_summary_value = ttk.Entry(summary_frame, font=("Arial", 10, "bold"), state="readonly", width=70)
+    rank_alliance_summary_value.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
+    rank_alliance_summary_value.insert(0, "No data")
+    
+    awards_summary_label = ttk.Label(summary_frame, text="Awards Summary: ")
+    awards_summary_label.grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+    
+    awards_summary_value = ttk.Entry(summary_frame, font=("Arial", 10, "bold"), state="readonly", width=70)
+    awards_summary_value.grid(row=1, column=1, sticky=tk.W, padx=5, pady=5)
+    awards_summary_value.insert(0, "No data")
+    
     buttons_frame = ttk.Frame(main_frame)
     buttons_frame.pack(fill=tk.X, pady=10)
+    
+    def clean_award_name(award_name):
+        award_name = re.sub(r'\s+(sponsored|presented)\s+by.*', '', award_name, flags=re.IGNORECASE)
+        
+        award_name = re.sub(r'^FIRST\s+', '', award_name, flags=re.IGNORECASE)
+        
+        award_name = award_name.replace("District", "Dist.")
+        
+        award_name = award_name.replace("Championship", "Champ.")
+        
+        return award_name
+    
+    def generate_team_summary():
+        if not tree.get_children():
+            rank_alliance_summary_value.config(state="normal")
+            rank_alliance_summary_value.delete(0, tk.END)
+            rank_alliance_summary_value.insert(0, "No data")
+            rank_alliance_summary_value.config(state="readonly")
+            
+            awards_summary_value.config(state="normal")
+            awards_summary_value.delete(0, tk.END)
+            awards_summary_value.insert(0, "No data")
+            awards_summary_value.config(state="readonly")
+            return
+            
+        team_data = {}
+        for item in tree.get_children():
+            values = tree.item(item)['values']
+            team_num = values[0]
+            if team_num not in team_data:
+                team_data[team_num] = {
+                    'name': values[1],
+                    'events': []
+                }
+            
+            rank = values[4]
+            alliance_status = values[6]
+            awards = values[5]
+            
+            if rank or alliance_status != "Unknown" or awards not in ["None", "Error"]:
+                team_data[team_num]['events'].append({
+                    'name': values[2],
+                    'date': values[3],
+                    'rank': rank,
+                    'alliance_status': alliance_status,
+                    'awards': awards
+                })
+        
+        for team_num, data in team_data.items():
+            ranks = [int(e['rank']) for e in data['events'] if e['rank']]
+            total_ranked_events = len(ranks)
+            
+            if ranks:
+                top_ranks = {}
+                for r in sorted(ranks):
+                    if r not in top_ranks:
+                        top_ranks[r] = ranks.count(r)
+                    if len(top_ranks) >= 3:
+                        break
+                
+                rank_summary = " | ".join([f"{r}{'st' if r == 1 else 'nd' if r == 2 else 'rd' if r == 3 else 'th'} {count}/{total_ranked_events}" 
+                                         for r, count in top_ranks.items()])
+            else:
+                rank_summary = "No ranking data"
+                
+            alliance_info = []
+            for event in data['events']:
+                if 'Alliance' in event.get('alliance_status', ''):
+                    status = event['alliance_status']
+                    if 'Captain' in status:
+                        alliance_num = status.split('Alliance ')[1].split(' -')[0]
+                        alliance_info.append(f"captain A{alliance_num}")
+                    elif 'Pick' in status:
+                        alliance_num = status.split('Alliance ')[1].split(' -')[0]
+                        pick_num = status.split('Pick #')[1]
+                        if pick_num == "1":
+                            alliance_info.append(f"1st of A{alliance_num}")
+                        else:
+                            alliance_info.append(f"{pick_num}nd A{alliance_num}")
+            
+            alliance_summary = " | ".join(alliance_info) if alliance_info else "No alliance data"
+            
+            combined_summary = f"{rank_summary} | {alliance_summary}"
+            if combined_summary == "No ranking data | No alliance data":
+                combined_summary = "No data"
+            
+            all_awards = []
+            for event in data['events']:
+                if event.get('awards') and event['awards'] not in ["None", "Error"]:
+                    all_awards.extend([a.strip() for a in event['awards'].split(";")])
+            
+            award_counts = {}
+            for award in all_awards:
+                cleaned_award = clean_award_name(award.split(" (")[0])
+                award_counts[cleaned_award] = award_counts.get(cleaned_award, 0) + 1
+            
+            awards_summary = " | ".join([f"{award}{' x'+str(count) if count > 1 else ''}" 
+                                       for award, count in award_counts.items()])
+            
+            if not awards_summary:
+                awards_summary = "No awards data"
+            
+            rank_alliance_summary_value.config(state="normal")
+            rank_alliance_summary_value.delete(0, tk.END)
+            rank_alliance_summary_value.insert(0, combined_summary)
+            rank_alliance_summary_value.config(state="readonly")
+            
+            awards_summary_value.config(state="normal")
+            awards_summary_value.delete(0, tk.END)
+            awards_summary_value.insert(0, awards_summary)
+            awards_summary_value.config(state="readonly")
     
     def fetch_data():
         for item in tree.get_children():
@@ -90,9 +219,15 @@ def main():
             team_key = f"frc{team_num}"
             try:
                 team_info = frc_api.get_team_data(team_key)
+                if not team_info:
+                    raise ValueError(f"No data found for team {team_num}")
+                    
                 team_name = team_info.get("nickname", f"Team {team_num}")
                 
                 events = frc_api.get_team_events(team_key, year)
+                if not events:
+                    tree.insert('', tk.END, values=(team_num, team_name, "No events found", "", "", "", ""))
+                    continue
                 
                 for event in events:
                     event_key = event.get("key")
@@ -154,6 +289,8 @@ def main():
                                f"Data retrieved with {len(errors_encountered)} errors.\n"
                                "See console for details.\n"
                                "The application will display all teams that were retrieved successfully.")
+                               
+        generate_team_summary()
     
     def export_data():
         if not tree.get_children():
