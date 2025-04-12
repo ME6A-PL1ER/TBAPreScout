@@ -29,7 +29,7 @@ def main():
     
     ttk.Label(input_frame, text="Year:").grid(row=0, column=2, padx=5, pady=5)
     year_entry = ttk.Entry(input_frame, width=10)
-    year_entry.insert(0, "2025")  # Default year
+    year_entry.insert(0, "2025")
     year_entry.grid(row=0, column=3, padx=5, pady=5)
     
     results_frame = ttk.LabelFrame(main_frame, text="Results", padding="10")
@@ -84,6 +84,8 @@ def main():
         progress.pack(fill=tk.X, pady=5)
         progress.start()
         
+        errors_encountered = []
+        
         for team_num in team_numbers:
             team_key = f"frc{team_num}"
             try:
@@ -98,17 +100,25 @@ def main():
                     event_date = event.get("start_date", "Unknown")
                     
                     picked_status = "Unknown"
-                    alliance_info = frc_api.was_team_picked(team_key, event_key)
-                    if alliance_info["picked"]:
-                        alliance_text = f"Alliance {alliance_info['alliance']} - "
-                        if alliance_info["captain"]:
-                            picked_status = f"{alliance_text}Captain"
+                    try:
+                        alliance_info = frc_api.was_team_picked(team_key, event_key)
+                        if alliance_info["picked"]:
+                            alliance_text = f"Alliance {alliance_info['alliance']} - "
+                            if alliance_info["captain"]:
+                                picked_status = f"{alliance_text}Captain"
+                            else:
+                                picked_status = f"{alliance_text}Pick #{alliance_info['pick_number']}"
                         else:
-                            picked_status = f"{alliance_text}Pick #{alliance_info['pick_number']}"
-                    else:
-                        picked_status = "Not Picked"
+                            picked_status = "Not Picked"
+                    except Exception as e:
+                        print(f"Error checking alliance status for team {team_num} at {event_key}: {e}")
+                        picked_status = "Error"
                     
-                    awards_str = frc_api.fetch_awards(team_key, event_key)
+                    try:
+                        awards_str = frc_api.fetch_awards(team_key, event_key)
+                    except Exception as e:
+                        print(f"Error fetching awards for team {team_num} at {event_key}: {e}")
+                        awards_str = "Error"
 
                     rank = ''
                     try:
@@ -124,10 +134,26 @@ def main():
                     tree.insert('', tk.END, values=(team_num, team_name, event_name, event_date, rank, awards_str, picked_status))
                     
             except Exception as e:
-                messagebox.showerror("Error", f"Error fetching data for team {team_num}: {str(e)}")
+                error_msg = f"Error fetching data for team {team_num}: {str(e)}"
+                print(error_msg)
+                errors_encountered.append(error_msg)
+                continue
         
         progress.stop()
         progress.destroy()
+        
+        if errors_encountered:
+            error_summary = "\n".join(errors_encountered[:5])
+            if len(errors_encountered) > 5:
+                error_summary += f"\n...and {len(errors_encountered) - 5} more errors"
+            
+            print(f"Encountered {len(errors_encountered)} errors while fetching data:")
+            print(error_summary)
+            
+            messagebox.showinfo("Data Fetch Complete", 
+                               f"Data retrieved with {len(errors_encountered)} errors.\n"
+                               "See console for details.\n"
+                               "The application will display all teams that were retrieved successfully.")
     
     def export_data():
         if not tree.get_children():
