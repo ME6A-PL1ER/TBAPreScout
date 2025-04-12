@@ -135,15 +135,28 @@ def main():
             total_ranked_events = len(ranks)
             
             if ranks:
-                top_ranks = {}
-                for r in sorted(ranks):
-                    if r not in top_ranks:
-                        top_ranks[r] = ranks.count(r)
-                    if len(top_ranks) >= 3:
-                        break
+                rank_summary_parts = []
                 
-                rank_summary = " | ".join([f"{r}{'st' if r == 1 else 'nd' if r == 2 else 'rd' if r == 3 else 'th'} {count}/{total_ranked_events}" 
-                                         for r, count in top_ranks.items()])
+                first_places = ranks.count(1)
+                if first_places > 0:
+                    rank_summary_parts.append(f"1st {first_places}/{total_ranked_events}")
+                
+                top3_count = sum(1 for r in ranks if 1 < r <= 3)
+                if top3_count > 0:
+                    rank_summary_parts.append(f"top 3 {top3_count}/{total_ranked_events}")
+                
+                top5_count = sum(1 for r in ranks if 3 < r <= 5)
+                if top5_count > 0:
+                    rank_summary_parts.append(f"top 5 {top5_count}/{total_ranked_events}")
+                
+                top10_count = sum(1 for r in ranks if 5 < r <= 10)
+                if top10_count > 0:
+                    rank_summary_parts.append(f"top 10 {top10_count}/{total_ranked_events}")
+                
+                if rank_summary_parts:
+                    rank_summary = " | ".join(rank_summary_parts)
+                else:
+                    rank_summary = "No notable rankings"
             else:
                 rank_summary = "No ranking data"
                 
