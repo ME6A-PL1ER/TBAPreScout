@@ -86,6 +86,8 @@ def main():
     def clean_award_name(award_name):
         award_name = re.sub(r'\s+(sponsored|presented)\s+by.*', '', award_name, flags=re.IGNORECASE)
         
+        award_name = re.sub(r'\s+in honor of Jack Kamen.*', '', award_name, flags=re.IGNORECASE)
+        
         award_name = re.sub(r'^FIRST\s+', '', award_name, flags=re.IGNORECASE)
         
         award_name = award_name.replace("District", "Dist.")
