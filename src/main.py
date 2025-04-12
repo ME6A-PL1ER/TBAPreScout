@@ -177,7 +177,7 @@ def main():
                         elif pick_num == "2":
                             alliance_info.append(f"2nd A{alliance_num}")
                         elif pick_num == "3":
-                            alliance_info.append(f"3rd A{alliance_num}")
+                            alliance_info.append(f"3rd/backup A{alliance_num}")
             
             alliance_summary = " | ".join(alliance_info) if alliance_info else "No alliance data"
             
