@@ -173,9 +173,11 @@ def main():
                         alliance_num = status.split('Alliance ')[1].split(' -')[0]
                         pick_num = status.split('Pick #')[1]
                         if pick_num == "1":
-                            alliance_info.append(f"1st of A{alliance_num}")
-                        else:
-                            alliance_info.append(f"{pick_num}nd A{alliance_num}")
+                            alliance_info.append(f"1st A{alliance_num}")
+                        elif pick_num == "2":
+                            alliance_info.append(f"2nd A{alliance_num}")
+                        elif pick_num == "3":
+                            alliance_info.append(f"3rd A{alliance_num}")
             
             alliance_summary = " | ".join(alliance_info) if alliance_info else "No alliance data"
             
