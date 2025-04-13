@@ -1,6 +1,15 @@
 # FRC Team Event Tracker
 
-This project is designed to retrieve and display event data for FRC (FIRST Robotics Competition) teams, including information on whether teams were picked for alliances.
+A comprehensive tool for FIRST Robotics Competition (FRC) teams to track and analyze team performance across events, including alliance selections, rankings, awards, and match videos.
+
+## Features
+
+- Fetch team data from The Blue Alliance API
+- View team rankings, alliance selections, and awards
+- Search and filter team event data
+- Export data to CSV or Excel
+- Generate team performance summaries
+- Watch and download match videos directly from the application
 
 ## Project Structure
 
@@ -29,6 +38,14 @@ frc-team-event-tracker
 ```
 
 ## Installation
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package manager)
+- FFmpeg (optional, for better video download quality and format options)
+
+### Basic Installation
 
 1. Clone the repository:
    ```
