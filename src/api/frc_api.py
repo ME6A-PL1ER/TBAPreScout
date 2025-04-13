@@ -122,3 +122,107 @@ class FRCAPI:
             print(f"Team {team_name} is ranked {rank} at {event_key}")
         else:
             print(f"No ranking information found for Team {team_name} at {event_key}")
+
+    def get_event_videos(self, event_key):
+        """
+        Fetches YouTube videos associated with an event from The Blue Alliance API.
+        
+        Args:
+            event_key (str): The event key (e.g. '2023inind')
+            
+        Returns:
+            list: List of dictionaries containing video information (title, type, key)
+        """
+        try:
+            url = f"{self.base_url}/event/{event_key}/team_media"
+            response = requests.get(url, headers=self.headers)
+            
+            if response.status_code != 200:
+                return []
+                
+            all_media = response.json()
+            
+            youtube_videos = []
+            for media in all_media:
+                media_type = media.get('type', '')
+                
+                if media_type == 'youtube':
+                    youtube_videos.append({
+                        'title': media.get('details', {}).get('title', 'Untitled Video'),
+                        'type': 'youtube',
+                        'key': media.get('key', ''),
+                        'url': f"https://www.youtube.com/watch?v={media.get('key', '')}"
+                    })
+                elif media_type == 'youtube_playlist':
+                    playlist_id = media.get('key', '')
+                    youtube_videos.append({
+                        'title': media.get('details', {}).get('title', 'YouTube Playlist'),
+                        'type': 'youtube_playlist',
+                        'key': playlist_id,
+                        'url': f"https://www.youtube.com/playlist?list={playlist_id}"
+                    })
+            
+            return youtube_videos
+        except Exception as e:
+            print(f"Error fetching videos for event {event_key}: {e}")
+            return []
+
+    def get_team_event_videos(self, team_key, event_key):
+        videos = []
+        
+        try:
+            year = event_key[:4]
+            team_media_url = f"{self.base_url}/team/{team_key}/media/{year}"
+            response = requests.get(team_media_url, headers=self.headers)
+            
+            if response.status_code == 200:
+                team_media = response.json()
+                
+                for media in team_media:
+                    media_type = media.get('type', '')
+                    key = media.get('key')
+                    
+                    if media_type == 'youtube' and key:
+                        videos.append({
+                            'title': media.get('details', {}).get('title', 'Team Video'),
+                            'type': 'youtube',
+                            'key': key,
+                            'url': f"https://www.youtube.com/watch?v={key}",
+                            'source': 'team'
+                        })
+                    elif media_type == 'youtube_playlist' and key:
+                        videos.append({
+                            'title': media.get('details', {}).get('title', 'Team Playlist'),
+                            'type': 'youtube_playlist',
+                            'key': key,
+                            'url': f"https://www.youtube.com/playlist?list={key}",
+                            'source': 'team'
+                        })
+        except Exception as e:
+            print(f"Error fetching team videos for {team_key} at {event_key}: {e}")
+        
+        try:
+            match_url = f"{self.base_url}/team/{team_key}/event/{event_key}/matches"
+            match_response = requests.get(match_url, headers=self.headers)
+            
+            if match_response.status_code == 200:
+                matches = match_response.json()
+                
+                for match in matches:
+                    if 'videos' in match and match['videos']:
+                        for video in match['videos']:
+                            if video.get('type') == 'youtube':
+                                key = video.get('key')
+                                if key:  # Make sure key exists
+                                    match_key = match.get('key', 'Unknown Match')
+                                    videos.append({
+                                        'title': f"Match {match_key}",
+                                        'type': 'youtube',
+                                        'key': key,
+                                        'url': f"https://www.youtube.com/watch?v={key}",
+                                        'source': 'match'
+                                    })
+        except Exception as e:
+            print(f"Error fetching match videos for {team_key} at {event_key}: {e}")
+        
+        return videos
